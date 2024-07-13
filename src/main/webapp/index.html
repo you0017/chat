@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/vue.js"></script>
+    <script src="js/axios-0.18.0.js"></script>
+    <style>
+        #left{
+            display: inline-block;
+        }
+        #talk{
+            float: right;
+            width: 500px;
+            height: 800px;
+            border: 1px solid green;
+            overflow: auto;//超过了有滚动条
+        }
+        #message{
+            width: 480px;
+            height: 600px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="loginDiv" v-if="!isLogin">
+            <form>
+                用户名：<input type="text" v-model="uname"/>
+                密码：<input type="password" v-model="upwd"/>
+                验证码：<input type="text" v-model="code"><img src="code.action">
+                <input type="button" value="登录" @click="login">
+            </form>
+            <a href="regin.html">注册</a>
+        </div>
+        <div v-if="isLogin">
+            欢迎：{{uname}}<br/>
+            <button @click="logout">退出登录</button>
+        </div>
+
+        <div id="main">
+            <div id="left">
+                <video width="320px" height="240px" controls>
+                    <source src="https://1949-10-01.oss-cn-hangzhou.aliyuncs.com/ce6fbfef-a4b9-46c4-a5ea-ace1813dfb25.mp4" type="video/mp4">
+                    您的浏览器不支持Video标签
+                </video>
+            </div>
+            <div id="talk">
+                <div id="message">
+                    <span v-for="(item,index) in messages">
+                        <span v-html="item"></span>
+                    </span>
+                </div>
+                <div id="sendMessage">
+                    你要说的话：  <textarea v-model="message" rows="5" cols="30">
+
+                                </textarea>
+                                <input type="button" value="发送" @click="sendMessage" :disabled="!isLogin">
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+<script>
+    var app = new Vue({
+        el:"#app",
+        data:{
+            uname:'',
+            upwd:'',
+            code:'',
+            isLogin: false,
+            messages:'',
+            message:''
+        },
+        methods:{
+            sendMessage(){
+                let params = new URLSearchParams();
+                params.append("uname",this.uname);
+                params.append("message",this.message);
+                axios.post("message.action?op=sendMessage",params).then(result=>{
+                    /*if (result.data.obj.code == 0){
+                        alert(result.data.obj.error);
+                    }*/
+                    this.message='';
+                })
+            },
+            logout(){
+                let params = new URLSearchParams();
+                axios.post("user.action?op=logout",params).then(result=>{
+                    if (result.data.code == 1){
+                        this.isLogin = false;
+                        this.uname='';
+                        this.upwd='';
+                        this.code='';
+                    }
+                })
+            },
+            login(){
+                let params = new URLSearchParams();
+                params.append("uname",this.uname);
+                params.append("upwd",this.upwd);
+                params.append("code",this.code);
+                axios.post("user.action?op=login",params).then(result=>{
+                    if (result.data.code == 1){
+                        this.isLogin = true;
+                    }else{
+                        alert(result.data.error);
+                    }
+                })
+            },
+            getLoginStatus(){
+                let params = new URLSearchParams()
+                return axios.post("user.action?op=getLoginStatus",params);
+            },
+            getAllMessages(){
+                return axios.post("message.action?op=getAllMessages")
+            }
+        },
+        mounted(){
+            axios.all([this.getLoginStatus(),this.getAllMessages()]).then(
+                axios.spread( (d1,d2) =>{
+                    if (d1.data.code == 1){
+                        this.isLogin = true;
+                        this.uname=d1.data.obj.uname;
+                        this.upwd=d1.data.obj.upwd;
+                    }
+                    if (d2.data.code == 1){
+                        this.messages = d2.data.obj;
+                    }
+                })
+            )
+        },
+        filter:{
+
+        },
+        created() {
+            // 获取注册页面传递过来的用户信息
+            // 获取地址栏参数
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+
+            // 获取特定参数的值
+            const uname = urlParams.get('uname');
+            const upwd = urlParams.get('upwd');
+
+            this.uname=uname;
+            this.upwd = upwd;
+            if (this.uname==''||this.uname==null || this.upwd==''||this.upwd==null){
+                return;
+            }
+            this.isLogin=true;
+
+            //alert(uname);
+            //alert(upwd);
+        }
+    });
+
+    //定时刷新历史记录
+    setInterval("show()",1000);
+    //setTimeout("show()",1000);
+
+    function show(){
+        axios.post("message.action?op=getAllMessages").then(result=>{
+            app._data.messages = result.data.obj;
+        })
+    }
+
+
+</script>
+</html>

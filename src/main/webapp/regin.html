@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/vue.js"></script>
+    <script src="js/axios-0.18.0.js"></script>
+</head>
+<body>
+    <div id="app">
+        <form>
+            用户名：<input type="text" v-model="uname"/>
+            密码：<input type="password" v-model="upwd"/>
+            验证码：<input type="text" v-model="code"><img src="code.action">
+            <input type="button" value="注册" @click="register" :disabled="isOK">
+        </form>
+    </div>
+</body>
+<script>
+    var app = new Vue({
+        el:"#app",
+        data:{
+            uname:'',
+            upwd: '',
+            code:'',
+            //isOK:true
+        },
+        methods:{
+            check(){
+                let params = new URLSearchParams();
+                params.append("uname",this.uname);
+                params.append("upwd",this.upwd);
+                params.append("code",this.code);
+                axios.post("user.action?op=checked",params).then(result=>{
+                    if (result.data.code == 0){
+                        this.isOK=true;
+                    }else {
+                        this.isOK=false;
+                    }
+                })
+            },
+            register(){
+                let params = new URLSearchParams();
+                params.append("uname",this.uname);
+                params.append("upwd",this.upwd);
+                params.append("code",this.code);
+                // 在注册成功后，假设用户信息保存在 userInfo 变量中
+                // 假设在注册页面中，Vue Router 的实例保存在 router 变量中
+                axios.post("user.action?op=register",params).then(result=>{
+                    if (result.data.code == 1){
+                        // 注册成功后将用户信息传递到登录页面
+                        //router.push({ name: 'login', params: { userInfo: response.data } });
+                        alert("注册成功");
+                        let upwd=result.data.obj.upwd;
+                        let uname=result.data.obj.uname;
+                        let url = "index.html?uname="+uname+"&upwd="+upwd;
+                        window.location.href = url;
+                    }else{
+                        alert(result.data.error);
+                    }
+                })
+            }
+        }
+    })
+</script>
+</html>
